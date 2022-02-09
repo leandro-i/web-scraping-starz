@@ -8,6 +8,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
 from time import sleep
+import re
 
 
 # Declaración de variables
@@ -94,6 +95,14 @@ def obtener_datos_series(url, tiempo=tiempo_default):
         driver.get(url)
         
         sleep(tiempo)
+        
+        meta = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
+        lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')
+        titulo = meta.find_element(By.CSS_SELECTOR, '.series-title h1').text
+        genero = lista_li[2].text
+        año = lista_li[3].text
+        sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
+        
     except NoSuchElementException:
         if tiempo >= 30:
             return
