@@ -166,3 +166,23 @@ def obtener_datos_series(url, tiempo=tiempo_default):
         if tiempo > 30:
             return
         obtener_datos_series(url, tiempo + 10)
+
+def obtener_datos_peliculas(url, tiempo=tiempo_default):
+    try:
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver.get(url)
+        
+        sleep(tiempo)
+        
+        meta = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
+        lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')
+        titulo = ' '.join(meta.find_element(By.CSS_SELECTOR, '.series-title h1').text.split(' ', 1).rsplit(' ', 1))
+        duracion = lista_li[1].text
+        genero = lista_li[2].text
+        año = lista_li[3].text
+        sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
+        
+    except NoSuchElementException:
+        if tiempo > 30:
+            return
+        obtener_datos_series(url, tiempo + 10)
