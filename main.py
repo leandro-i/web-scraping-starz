@@ -32,12 +32,12 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
     """Función obtener_links: Extrae los links de los elementos accedidos, mediante css_selector, de una URL.
 
     Args:
-        url (str): URL de la página a realizar el scraping
+        url (str): URL de la página a realizar el scraping.
         css_selector (str): Selector CSS de los elementos a capturar.
         tiempo (int, optional): Tiempo de espera para la carga de la página. Default: tiempo_default.
 
     Returns:
-        list: Lista de los links de los elementos.
+        lista_links (list): Lista de los links de los elementos.
 
     Raises:
         NoSuchElementException: En caso de que no existan o no carguen los elementos en el tiempo especificado.
@@ -90,6 +90,20 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
 
 
 def obtener_datos_series(url, tiempo=tiempo_default):
+    """Función obtener_datos_series: Recoge los datos de la serie de la URL y los guarda en un diccionario.
+
+    Args:
+        url (str): URL de la serie.
+        tiempo (int, optional): Tiempo de espera para la carga de la página. Default: tiempo_default.
+
+    Returns:
+        datos_serie (dict): Diccionario con los datos recogidos de la serie.
+    
+    Raises:
+        NoSuchElementException: En caso de que no existan o no carguen los elementos en el tiempo especificado.
+        Suma 10 segundos al tiempo de espera y vuelve a ejecutar la función, hasta un máximo de 30 segundos.
+    """
+    
     try:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         driver.get(url)
@@ -127,7 +141,10 @@ def obtener_datos_series(url, tiempo=tiempo_default):
 
             dict_episodios[t] = lista_episodios
             
-            if len(temporadas) > 1:
+            
+            # Si hay más temporadas
+            
+            if len(temporadas) > t:
                 temporada.find_element(By.CSS_SELECTOR, 'a').click()
                 sleep(tiempo)
             
@@ -139,7 +156,7 @@ def obtener_datos_series(url, tiempo=tiempo_default):
             'link': url,
             'temporadas': len(temporadas),
             'cantidad_de_episodios': len(episodios),
-            'episodios': lista_episodios,
+            'episodios': dict_episodios,
         }
         
         driver.quit()
@@ -147,14 +164,5 @@ def obtener_datos_series(url, tiempo=tiempo_default):
 
     except NoSuchElementException:
         if tiempo > 30:
-            return
-        obtener_datos_series(url, tiempo+5)
-                
-                
-                
-                
-        
-    except NoSuchElementException:
-        if tiempo >= 30:
             return
         obtener_datos_series(url, tiempo + 10)
