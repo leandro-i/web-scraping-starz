@@ -9,6 +9,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
 from time import sleep
 import re
+from datetime import date
 
 
 # Declaración de variables
@@ -113,8 +114,10 @@ def obtener_datos_series(url, tiempo=tiempo_default):
         meta = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
         lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')
         titulo = meta.find_element(By.CSS_SELECTOR, '.series-title h1').text
+        calificacion = lista_li[0].text
         genero = lista_li[2].text
         año = lista_li[3].text
+        año = validar_año(int(año))
         sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
         
         contenedor_episodios = driver.find_element(By.CSS_SELECTOR, 'div.episodes-container')
@@ -150,13 +153,14 @@ def obtener_datos_series(url, tiempo=tiempo_default):
             
         datos_serie = {
             'titulo': titulo,
+            'calificacion': calificacion,
             'genero': genero,
             'año': año,
             'sinopsis': sinopsis,
-            'link': url,
             'temporadas': len(temporadas),
             'cantidad_de_episodios': len(episodios),
             'episodios': dict_episodios,
+            'link': url,
         }
         
         driver.quit()
@@ -166,6 +170,7 @@ def obtener_datos_series(url, tiempo=tiempo_default):
         if tiempo > 30:
             return
         obtener_datos_series(url, tiempo + 10)
+
 
 def obtener_datos_peliculas(url, tiempo=tiempo_default):
     try:
@@ -177,12 +182,34 @@ def obtener_datos_peliculas(url, tiempo=tiempo_default):
         meta = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
         lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')
         titulo = ' '.join(meta.find_element(By.CSS_SELECTOR, '.series-title h1').text.split(' ', 1).rsplit(' ', 1))
+        calificacion = lista_li[0].text
         duracion = lista_li[1].text
         genero = lista_li[2].text
         año = lista_li[3].text
+        año = validar_año(int(año))
         sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
         
+        datos_pelicula = {
+            'titulo': titulo,
+            'calificacion': calificacion,
+            'genero': genero,
+            'año': año,
+            'sinopsis': sinopsis,
+            'duracion': duracion,
+            'link': url,
+        }        
+        
+        driver.quit()
+        return datos_pelicula
+    
     except NoSuchElementException:
         if tiempo > 30:
             return
         obtener_datos_series(url, tiempo + 10)
+
+
+def validar_año(n):
+    if 1900 < n <= date.today().year:
+        return n
+    else:
+        return ''
