@@ -86,3 +86,15 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
         if tiempo >= 30:
             return
         obtener_links(url, css_selector, tiempo + 10)
+
+
+def obtener_datos_series(url, tiempo=tiempo_default):
+    try:
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver.get(url)
+        
+        sleep(tiempo)
+    except NoSuchElementException:
+        if tiempo >= 30:
+            return
+        obtener_datos_series(url, tiempo + 10)
