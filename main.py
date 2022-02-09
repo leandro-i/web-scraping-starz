@@ -103,6 +103,57 @@ def obtener_datos_series(url, tiempo=tiempo_default):
         año = lista_li[3].text
         sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
         
+        contenedor_episodios = driver.find_element(By.CSS_SELECTOR, 'div.episodes-container')
+        temporadas = contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.season-number')
+        
+        dict_episodios = {}
+        
+        for t, temporada in enumerate(temporadas, 1):
+            episodios =  contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.episode-container')
+            lista_episodios = []
+        
+            for episodio in episodios:
+                episodio_titulo = episodio.find_element(By.CSS_SELECTOR, '.title').text
+                episodio_meta = episodio.find_element(By.CSS_SELECTOR, 'ul.meta-list')
+                episodio_duracion = episodio_meta[1].text
+                episodio_año = episodio_meta[2].text
+                
+                lista_episodios.append({
+                    'temporada': t,
+                    'titulo': episodio_titulo,
+                    'año': episodio_año,
+                    'duracion': episodio_duracion,
+                })
+
+            dict_episodios[t] = lista_episodios
+            
+            if len(temporadas) > 1:
+                temporada.find_element(By.CSS_SELECTOR, 'a').click()
+                sleep(tiempo)
+            
+        datos_serie = {
+            'titulo': titulo,
+            'genero': genero,
+            'año': año,
+            'sinopsis': sinopsis,
+            'link': url,
+            'temporadas': len(temporadas),
+            'cantidad_de_episodios': len(episodios),
+            'episodios': lista_episodios,
+        }
+        
+        driver.quit()
+        return datos_serie
+
+    except NoSuchElementException:
+        if tiempo > 30:
+            return
+        obtener_datos_series(url, tiempo+5)
+                
+                
+                
+                
+        
     except NoSuchElementException:
         if tiempo >= 30:
             return
