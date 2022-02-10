@@ -80,7 +80,7 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
         while alto_ventana*i < alto_pagina:
             alto_pagina = driver.execute_script('return document.documentElement.scrollHeight;')
             driver.execute_script(f'window.scrollTo(0, {alto_ventana * i});')
-            sleep(3)
+            sleep(tiempo/2)
             
             lista_elementos.extend(driver.find_elements(By.CSS_SELECTOR, css_selector))
             
@@ -103,7 +103,7 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
     
     except NoSuchElementException:
         if tiempo >= 30:
-            return
+            return []
         obtener_links(url, css_selector, tiempo + 10)
     
     except InvalidArgumentException:
@@ -123,6 +123,8 @@ def obtener_datos_series(url, tiempo=tiempo_default):
     Raises:
         NoSuchElementException: En caso de que no existan o no carguen los elementos en el tiempo especificado.
         Suma 10 segundos al tiempo de espera y vuelve a ejecutar la función, hasta un máximo de 30 segundos.
+        
+        InvalidArgumentException: Si la URL no es válida, retorna una lista vacía.
     """
     
     # Limpiar URL
@@ -193,7 +195,8 @@ def obtener_datos_series(url, tiempo=tiempo_default):
                 driver.set_window_size(1024, 600)
                 driver.maximize_window()
                 driver.get(link_temporada)
-                sleep(5)
+                sleep(tiempo)
+                
                 contenedor_episodios = driver.find_element(By.CSS_SELECTOR, 'div.episodes-container')
             
         datos_serie = {
@@ -215,7 +218,7 @@ def obtener_datos_series(url, tiempo=tiempo_default):
     except NoSuchElementException:
         if tiempo > 30:
             driver.quit()
-            return
+            return []
         obtener_datos_series(url, tiempo + 10)
     
     except InvalidArgumentException:
@@ -237,6 +240,8 @@ def obtener_datos_peliculas(url, tiempo=tiempo_default):
     Raises:
         NoSuchElementException: En caso de que no existan o no carguen los elementos en el tiempo especificado.
         Suma 10 segundos al tiempo de espera y vuelve a ejecutar la función, hasta un máximo de 30 segundos.
+        
+        InvalidArgumentException: Si la URL no es válida, retorna una lista vacía.
     """
     
     # Limpiar URL    
@@ -281,7 +286,7 @@ def obtener_datos_peliculas(url, tiempo=tiempo_default):
     except NoSuchElementException:
         if tiempo > 30:
             driver.quit()
-            return
+            return []
         obtener_datos_peliculas(url, tiempo + 10)
     
     except InvalidArgumentException:
