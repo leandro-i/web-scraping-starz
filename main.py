@@ -319,7 +319,7 @@ lista_links_peliculas = set(lista_links_peliculas)
 
 dict_peliculas = {}
 for i, link in enumerate(lista_links_peliculas):
-    dict_peliculas[i] = obtener_datos_peliculas(link)
+    dict_peliculas[i+1] = obtener_datos_peliculas(link)
 
 
 
@@ -336,7 +336,7 @@ lista_links_series = set(lista_links_series)
     
 dict_series = {}
 for i, link in enumerate(lista_links_series):
-    dict_series[i] = obtener_datos_series(link)
+    dict_series[i+1] = obtener_datos_series(link)
 
 
 
