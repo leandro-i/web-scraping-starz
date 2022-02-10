@@ -265,6 +265,11 @@ def obtener_datos_peliculas(url, tiempo=tiempo_default):
 
 
 def validar_año(st):
-    pass
+    lista = re.findall('\d+|.', st)
+    n = max([int(n) for n in lista if n.isdigit()])
+    if 1900 < n <= date.today().year:
+        return n
+    else:
+        return ''
 
 
