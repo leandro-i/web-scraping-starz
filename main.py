@@ -27,7 +27,7 @@ RUTA_PELICULAS_JSON = 'peliculas.json'
 RUTA_SERIES_JSON = 'series.json'
 RUTA_CATALOGO_JSON = 'catalogo.json'
 
-tiempo_default = 6
+tiempo_default = 5
 
 
 # Opciones del driver
@@ -86,7 +86,6 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
             
             i = i + 1
         
-        
         # Obtener los href de los elementos a        
         lista_links = []
         
@@ -140,9 +139,14 @@ def obtener_datos_series(url, tiempo=tiempo_default):
         
         temporadas = driver.find_elements(By.CSS_SELECTOR, 'div.episodes-container div.season-number a')
 
-        
-        
         for nro_temporada, temporada in enumerate(temporadas, 1):
+            # Click botón "ver más" si existe
+            try:
+                driver.find_element(By.CSS_SELECTOR,'div.metadata .more-link.more-button.show').click()
+                sleep(tiempo/3)
+            except NoSuchElementException:
+                pass
+            
             meta = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
             lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')
 
@@ -170,9 +174,8 @@ def obtener_datos_series(url, tiempo=tiempo_default):
                 episodio_duracion = episodio_lista_li[1].text
                 episodio_año = episodio_lista_li[2].text
                 
-                
-                # Verificar si es un tráiler                
-                if 'tráiler' in episodio_titulo.lower() and int(episodio_duracion.split()[0]) < 5:
+                # Verificar si es un tráiler
+                if 'tráiler' in episodio_titulo.lower() and int(episodio_duracion.split()[0]) < 6:
                     continue
                 
                 lista_episodios.append({
@@ -181,7 +184,6 @@ def obtener_datos_series(url, tiempo=tiempo_default):
                     'titulo': episodio_titulo,
                     'año': episodio_año,
                     'duracion': episodio_duracion,
-                    'link_temporada': link_temporada,
                 })            
             
             
@@ -204,12 +206,10 @@ def obtener_datos_series(url, tiempo=tiempo_default):
                 driver.get(link_siguiente_temporada)
                 sleep(tiempo)
         
-        
         # Sumar cantidad de episodios de la serie
         cantidad_episodios_total = 0
         for temporada in dict_temporadas:
             cantidad_episodios_total += dict_temporadas[temporada]['cantidad_episodios']
-        
         
         datos_serie = {
             'titulo': titulo,
@@ -266,6 +266,13 @@ def obtener_datos_peliculas(url, tiempo=tiempo_default):
         driver.get(url)
         sleep(tiempo)
         
+        # Click botón "ver más" si existe
+        try:
+            driver.find_element(By.CSS_SELECTOR,'div.metadata .more-link.more-button.show').click()
+            sleep(tiempo/3)
+        except NoSuchElementException:
+            pass
+            
         meta = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
         lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')        
         
