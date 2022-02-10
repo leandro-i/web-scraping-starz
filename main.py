@@ -288,3 +288,21 @@ for i, link in enumerate(lista_links_peliculas):
     dict_peliculas[i] = obtener_datos_peliculas(link)
 
 
+
+# SERIES
+
+lista_links_categorias_series = obtener_links(URL_SERIES, 'a.view-all')
+
+lista_links_series = []
+for link in lista_links_categorias_series:
+    lista_links_series.extend(obtener_links(link, 'starz-content-item article div a:first-of-type'))
+
+lista_links_series = set(lista_links_series)
+    
+dict_series = {}
+for i, link in enumerate(lista_links_series):
+    print('for i, link in enumerate(lista_links_series):', link)
+    dict_series[i] = obtener_datos_series(link)
+
+
+
