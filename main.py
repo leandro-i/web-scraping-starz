@@ -20,6 +20,9 @@ import json
 URL_SERIES = 'https://www.starz.com/ar/es/series'
 URL_PELICULAS = 'https://www.starz.com/ar/es/movies'
 
+SELECTOR_CSS_VER_TODO = 'a.view-all'
+SELECTOR_CSS_LINKS = 'starz-content-item article div a:first-of-type'
+
 tiempo_default = 6
 
 
@@ -303,11 +306,11 @@ def validar_año(st):
 
 # PELÍCULAS
 
-lista_links_categorias_peliculas = obtener_links(URL_PELICULAS, 'a.view-all')
+lista_links_categorias_peliculas = obtener_links(URL_PELICULAS, SELECTOR_CSS_VER_TODO)
 
 lista_links_peliculas = []
 for link in lista_links_categorias_peliculas:
-    lista_links_peliculas.extend(obtener_links(link, 'starz-content-item article div a:first-of-type'))
+    lista_links_peliculas.extend(obtener_links(link, SELECTOR_CSS_LINKS))
 
 lista_links_peliculas = set(lista_links_peliculas)
 
@@ -319,11 +322,11 @@ for i, link in enumerate(lista_links_peliculas):
 
 # SERIES
 
-lista_links_categorias_series = obtener_links(URL_SERIES, 'a.view-all')
+lista_links_categorias_series = obtener_links(URL_SERIES, SELECTOR_CSS_VER_TODO)
 
 lista_links_series = []
 for link in lista_links_categorias_series:
-    lista_links_series.extend(obtener_links(link, 'starz-content-item article div a:first-of-type'))
+    lista_links_series.extend(obtener_links(link, SELECTOR_CSS_LINKS))
 
 lista_links_series = set(lista_links_series)
     
