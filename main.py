@@ -173,6 +173,7 @@ def obtener_datos_series(url, tiempo=tiempo_default):
                 episodio_lista_li = episodio_meta.find_elements(By.CSS_SELECTOR, 'li')
                 episodio_duracion = episodio_lista_li[1].text
                 episodio_año = episodio_lista_li[2].text
+                episodio_link = episodio.find_element(By.CSS_SELECTOR, 'a.episode-link').get_attribute('href')
                 
                 # Verificar si es un tráiler
                 if 'tráiler' in episodio_titulo.lower() and int(episodio_duracion.split()[0]) < 6:
@@ -184,6 +185,7 @@ def obtener_datos_series(url, tiempo=tiempo_default):
                     'titulo': episodio_titulo,
                     'año': episodio_año,
                     'duracion': episodio_duracion,
+                    'link_episodio': episodio_link,
                 })            
             
             
