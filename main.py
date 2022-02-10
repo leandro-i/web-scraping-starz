@@ -306,3 +306,19 @@ for i, link in enumerate(lista_links_series):
 
 
 
+
+# Exportar diccionarios a archivos json
+
+with open('series.json', 'w+') as file:
+    json.dump(dict_series, file)
+
+with open('peliculas.json', 'w+') as file:
+    json.dump(dict_peliculas, file)
+
+with open('catalogo.json', 'w+') as file:
+    dict_catalogo = {
+        'series': dict_series,
+        'peliculas': dict_peliculas,
+    }
+    
+    json.dump(dict_catalogo, file)
