@@ -68,7 +68,7 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
         lista_elementos = driver.find_elements(By.CSS_SELECTOR, css_selector)
                 
         
-        # Scrollear hacia abajo y cargar los elementos        
+        # Scrollear hacia abajo y cargar los elementos dinámicos
         i = 1
         alto_ventana = driver.execute_script('return window.innerHeight;')
         alto_pagina = driver.execute_script('return document.documentElement.scrollHeight;')
@@ -92,6 +92,7 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
             
         driver.quit()
         
+        # Filtrar los links repetidos
         lista_links = list(set(lista_links))
         
         return lista_links
@@ -122,6 +123,7 @@ def obtener_datos_series(url, tiempo=tiempo_default):
     
     # Limpiar URL
     url = unquote(url)
+    
     try:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         driver.set_window_size(1024, 600)
@@ -137,6 +139,8 @@ def obtener_datos_series(url, tiempo=tiempo_default):
         genero = lista_li[2].text
         año = lista_li[3].text
         año = validar_año(año)
+        
+        # Eliminar dobles espacios, tabulaciones y saltos de línea
         sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
         
         contenedor_episodios = driver.find_element(By.CSS_SELECTOR, 'div.episodes-container')
@@ -159,7 +163,7 @@ def obtener_datos_series(url, tiempo=tiempo_default):
                 episodio_duracion = episodio_lista_li[1].text
                 episodio_año = episodio_lista_li[2].text                
                 
-                # Verificar si es un tráiler                
+                # Verificar si es un tráiler
                 if 'tráiler' in episodio_titulo.lower() and int(episodio_duracion.split()[0]) < 5:
                     continue
                 
@@ -172,7 +176,7 @@ def obtener_datos_series(url, tiempo=tiempo_default):
                     'link_temporada': link_temporada,
                 })
 
-            dict_episodios[i] = lista_episodios            
+            dict_episodios[i+1] = lista_episodios            
             
             # Si hay más temporadas            
             if len(temporadas) > i+1:
