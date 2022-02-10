@@ -273,3 +273,18 @@ def validar_año(st):
         return ''
 
 
+# PELÍCULAS
+
+lista_links_categorias_peliculas = obtener_links(URL_PELICULAS, 'a.view-all')
+
+lista_links_peliculas = []
+for link in lista_links_categorias_peliculas:
+    lista_links_peliculas.extend(obtener_links(link, 'starz-content-item article div a:first-of-type'))
+
+lista_links_peliculas = set(lista_links_peliculas)
+
+dict_peliculas = {}
+for i, link in enumerate(lista_links_peliculas):
+    dict_peliculas[i] = obtener_datos_peliculas(link)
+
+
