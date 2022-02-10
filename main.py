@@ -7,9 +7,12 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import InvalidArgumentException
 from time import sleep
 import re
+from urllib.parse import unquote
 from datetime import date
+import json
 
 
 # Declaración de variables
@@ -17,17 +20,19 @@ from datetime import date
 URL_SERIES = 'https://www.starz.com/ar/es/series'
 URL_PELICULAS = 'https://www.starz.com/ar/es/movies'
 
-tiempo_default = 10
+tiempo_default = 6
 
 
 # Opciones del driver
 
 options = Options()
-options.add_argument('--start-maximized')
+# options.add_argument('--start-maximized')
 options.add_argument('--disable-extensions')
 options.add_experimental_option("detach", True)
 options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
+
+# Funciones
 
 def obtener_links(url, css_selector, tiempo=tiempo_default):
     """Función obtener_links: Extrae los links de los elementos accedidos, mediante css_selector, de una URL.
@@ -45,10 +50,12 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
         Suma 10 segundos al tiempo de espera y vuelve a ejecutar la función, hasta un máximo de 30 segundos.
     """
     
+    url = unquote(url)
     try:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver.set_window_size(1024, 600)
+        driver.maximize_window()
         driver.get(url)
-        
         sleep(tiempo)
         
         lista_elementos = driver.find_elements(By.CSS_SELECTOR, css_selector)
@@ -82,12 +89,18 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
         
         lista_links = list(set(lista_links))
         
+        print('obtener_links lista_links', lista_links)
+        print('obtener_links url', url)
         return lista_links
     
     except NoSuchElementException:
         if tiempo >= 30:
             return
         obtener_links(url, css_selector, tiempo + 10)
+    
+    except InvalidArgumentException:
+        print('obtener_links url', url)
+        return []
 
 
 def obtener_datos_series(url, tiempo=tiempo_default):
@@ -104,52 +117,76 @@ def obtener_datos_series(url, tiempo=tiempo_default):
         NoSuchElementException: En caso de que no existan o no carguen los elementos en el tiempo especificado.
         Suma 10 segundos al tiempo de espera y vuelve a ejecutar la función, hasta un máximo de 30 segundos.
     """
-    
+    print('obtener_datos_series 121', url)
+    url = unquote(url)
     try:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver.set_window_size(1024, 600)
+        driver.maximize_window()
         driver.get(url)
-        
         sleep(tiempo)
         
         meta = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
         lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')
+        
         titulo = meta.find_element(By.CSS_SELECTOR, '.series-title h1').text
         calificacion = lista_li[0].text
         genero = lista_li[2].text
         año = lista_li[3].text
-        año = validar_año(int(año))
+        año = validar_año(año)
         sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
         
         contenedor_episodios = driver.find_element(By.CSS_SELECTOR, 'div.episodes-container')
-        temporadas = contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.season-number')
+        temporadas = contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.season-number a')
         
         dict_episodios = {}
         
-        for t, temporada in enumerate(temporadas, 1):
-            episodios =  contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.episode-container')
+        for i, temporada in enumerate(temporadas):
             lista_episodios = []
-        
-            for episodio in episodios:
-                episodio_titulo = episodio.find_element(By.CSS_SELECTOR, '.title').text
-                episodio_meta = episodio.find_element(By.CSS_SELECTOR, 'ul.meta-list')
-                episodio_duracion = episodio_meta[1].text
-                episodio_año = episodio_meta[2].text
+            
+            episodios =  contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.episode-container')
+            
+            if i == 0:                
+                link_temporada  = temporada.get_attribute('href')            
+            
+            for n, episodio in enumerate(episodios, 1):
+                episodio_titulo = episodio.find_element(By.CSS_SELECTOR, 'a .title').text                
+                episodio_meta = episodio.find_element(By.CSS_SELECTOR, 'a ul.meta-list')
+                episodio_lista_li = episodio_meta.find_elements(By.CSS_SELECTOR, 'li')
+                episodio_duracion = episodio_lista_li[1].text
+                episodio_año = episodio_lista_li[2].text
+                
+                
+                # Verificar si es un tráiler                
+                if 'tráiler' in episodio_titulo.lower() and int(episodio_duracion.split()[0]) < 5:
+                    continue
                 
                 lista_episodios.append({
-                    'temporada': t,
+                    'temporada': i+1,
+                    'numero_episodio': n,
                     'titulo': episodio_titulo,
                     'año': episodio_año,
                     'duracion': episodio_duracion,
+                    'link_temporada': link_temporada,
                 })
 
-            dict_episodios[t] = lista_episodios
+            dict_episodios[i] = lista_episodios
             
             
             # Si hay más temporadas
             
-            if len(temporadas) > t:
-                temporada.find_element(By.CSS_SELECTOR, 'a').click()
-                sleep(tiempo)
+            if len(temporadas) > i+1:
+                lista_temporadas = contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.season-number a')
+                link_temporada = lista_temporadas[i+1].get_attribute('href')
+                
+                driver.quit()
+                
+                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+                driver.set_window_size(1024, 600)
+                driver.maximize_window()
+                driver.get(link_temporada)
+                sleep(5)
+                contenedor_episodios = driver.find_element(By.CSS_SELECTOR, 'div.episodes-container')
             
         datos_serie = {
             'titulo': titulo,
@@ -164,29 +201,41 @@ def obtener_datos_series(url, tiempo=tiempo_default):
         }
         
         driver.quit()
+        print('datos_serie', datos_serie)
         return datos_serie
 
     except NoSuchElementException:
         if tiempo > 30:
+            driver.quit()
             return
         obtener_datos_series(url, tiempo + 10)
+    
+    except InvalidArgumentException:
+        print('obtener_datos_series url', url)
+        driver.quit()
+        return []
 
 
 def obtener_datos_peliculas(url, tiempo=tiempo_default):
+    url = unquote(url)
     try:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver.set_window_size(1024, 600)
+        driver.maximize_window()
         driver.get(url)
-        
         sleep(tiempo)
         
         meta = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
-        lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')
-        titulo = ' '.join(meta.find_element(By.CSS_SELECTOR, '.series-title h1').text.split(' ', 1).rsplit(' ', 1))
+        lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')        
+        
+        # Eliminar 'Ver' y 'Online' del título        
+        titulo = meta.find_element(By.CSS_SELECTOR, 'h1.movie-title').text.split(' ', 1)[1].rsplit(' ', 1)[0]
+        
         calificacion = lista_li[0].text
         duracion = lista_li[1].text
         genero = lista_li[2].text
         año = lista_li[3].text
-        año = validar_año(int(año))
+        año = validar_año(año)
         sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
         
         datos_pelicula = {
@@ -200,16 +249,22 @@ def obtener_datos_peliculas(url, tiempo=tiempo_default):
         }        
         
         driver.quit()
+        print('datos_pelicula', datos_pelicula)
         return datos_pelicula
     
     except NoSuchElementException:
         if tiempo > 30:
+            driver.quit()
             return
-        obtener_datos_series(url, tiempo + 10)
+        obtener_datos_peliculas(url, tiempo + 10)
+    
+    except InvalidArgumentException:
+        print('obtener_datos_peliculas url', url)
+        driver.quit()
+        return []
 
 
-def validar_año(n):
-    if 1900 < n <= date.today().year:
-        return n
-    else:
-        return ''
+def validar_año(st):
+    pass
+
+
