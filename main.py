@@ -23,6 +23,10 @@ URL_PELICULAS = 'https://www.starz.com/ar/es/movies'
 SELECTOR_CSS_VER_TODO = 'a.view-all'
 SELECTOR_CSS_LINKS = 'starz-content-item article div a:first-of-type'
 
+RUTA_PELICULAS_JSON = 'peliculas.json'
+RUTA_SERIES_JSON = 'series.json'
+RUTA_CATALOGO_JSON = 'catalogo.json'
+
 tiempo_default = 6
 
 
@@ -340,16 +344,16 @@ for i, link in enumerate(lista_links_series):
 
 
 
-
 # Exportar diccionarios a archivos json
 
-with open('series.json', 'w+', encoding='utf8') as file:
-    json.dump(dict_series, file, ensure_ascii=False, indent=4)
 
-with open('peliculas.json', 'w+', encoding='utf8') as file:
+with open(RUTA_PELICULAS_JSON, 'w+', encoding='utf8') as file:
     json.dump(dict_peliculas, file, ensure_ascii=False, indent=4)
 
-with open('catalogo.json', 'w+', encoding='utf8') as file:
+with open(RUTA_SERIES_JSON, 'w+', encoding='utf8') as file:
+    json.dump(dict_series, file, ensure_ascii=False, indent=4)
+
+with open(RUTA_CATALOGO_JSON, 'w+', encoding='utf8') as file:
     dict_catalogo = {
         'series': dict_series,
         'peliculas': dict_peliculas,
