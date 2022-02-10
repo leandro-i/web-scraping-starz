@@ -55,7 +55,9 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
         InvalidArgumentException: Si la URL no es válida, retorna una lista vacía.
     """
     
+    # Limpiar URL
     url = unquote(url)
+    
     try:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         driver.set_window_size(1024, 600)
@@ -64,10 +66,9 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
         sleep(tiempo)
         
         lista_elementos = driver.find_elements(By.CSS_SELECTOR, css_selector)
+                
         
-        
-        # Scrollear hacia abajo y cargar los elementos
-        
+        # Scrollear hacia abajo y cargar los elementos        
         i = 1
         alto_ventana = driver.execute_script('return window.innerHeight;')
         alto_pagina = driver.execute_script('return document.documentElement.scrollHeight;')
@@ -82,8 +83,7 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
             i = i + 1
         
         
-        # Obtener los href de los elementos a
-        
+        # Obtener los href de los elementos a        
         lista_links = []
         
         for elemento in lista_elementos:
@@ -119,7 +119,8 @@ def obtener_datos_series(url, tiempo=tiempo_default):
         NoSuchElementException: En caso de que no existan o no carguen los elementos en el tiempo especificado.
         Suma 10 segundos al tiempo de espera y vuelve a ejecutar la función, hasta un máximo de 30 segundos.
     """
-    print('obtener_datos_series 121', url)
+    
+    # Limpiar URL
     url = unquote(url)
     try:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
@@ -156,8 +157,7 @@ def obtener_datos_series(url, tiempo=tiempo_default):
                 episodio_meta = episodio.find_element(By.CSS_SELECTOR, 'a ul.meta-list')
                 episodio_lista_li = episodio_meta.find_elements(By.CSS_SELECTOR, 'li')
                 episodio_duracion = episodio_lista_li[1].text
-                episodio_año = episodio_lista_li[2].text
-                
+                episodio_año = episodio_lista_li[2].text                
                 
                 # Verificar si es un tráiler                
                 if 'tráiler' in episodio_titulo.lower() and int(episodio_duracion.split()[0]) < 5:
@@ -172,11 +172,9 @@ def obtener_datos_series(url, tiempo=tiempo_default):
                     'link_temporada': link_temporada,
                 })
 
-            dict_episodios[i] = lista_episodios
+            dict_episodios[i] = lista_episodios            
             
-            
-            # Si hay más temporadas
-            
+            # Si hay más temporadas            
             if len(temporadas) > i+1:
                 lista_temporadas = contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.season-number a')
                 link_temporada = lista_temporadas[i+1].get_attribute('href')
@@ -233,7 +231,7 @@ def obtener_datos_peliculas(url, tiempo=tiempo_default):
         Suma 10 segundos al tiempo de espera y vuelve a ejecutar la función, hasta un máximo de 30 segundos.
     """
     
-    # Limpiar url    
+    # Limpiar URL    
     url = unquote(url)
     
     try:
@@ -312,6 +310,7 @@ lista_links_peliculas = []
 for link in lista_links_categorias_peliculas:
     lista_links_peliculas.extend(obtener_links(link, SELECTOR_CSS_LINKS))
 
+# Eliminar películas repetidas
 lista_links_peliculas = set(lista_links_peliculas)
 
 dict_peliculas = {}
@@ -328,6 +327,7 @@ lista_links_series = []
 for link in lista_links_categorias_series:
     lista_links_series.extend(obtener_links(link, SELECTOR_CSS_LINKS))
 
+# Eliminar series repetidas
 lista_links_series = set(lista_links_series)
     
 dict_series = {}
