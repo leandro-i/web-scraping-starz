@@ -268,9 +268,10 @@ def validar_año(st):
     lista = re.findall('\d+|.', st)
     n = max([int(n) for n in lista if n.isdigit()])
     if 1900 < n <= date.today().year:
-        return n
+        return st
     else:
         return ''
+
 
 
 # PELÍCULAS
@@ -309,16 +310,15 @@ for i, link in enumerate(lista_links_series):
 
 # Exportar diccionarios a archivos json
 
-with open('series.json', 'w+') as file:
-    json.dump(dict_series, file)
+with open('series.json', 'w+', encoding='utf8') as file:
+    json.dump(dict_series, file, ensure_ascii=False, indent=4)
 
-with open('peliculas.json', 'w+') as file:
-    json.dump(dict_peliculas, file)
+with open('peliculas.json', 'w+', encoding='utf8') as file:
+    json.dump(dict_peliculas, file, ensure_ascii=False, indent=4)
 
-with open('catalogo.json', 'w+') as file:
+with open('catalogo.json', 'w+', encoding='utf8') as file:
     dict_catalogo = {
         'series': dict_series,
         'peliculas': dict_peliculas,
-    }
-    
-    json.dump(dict_catalogo, file)
+    }    
+    json.dump(dict_catalogo, file, ensure_ascii=False, indent=4)
