@@ -48,6 +48,8 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
     Raises:
         NoSuchElementException: En caso de que no existan o no carguen los elementos en el tiempo especificado.
         Suma 10 segundos al tiempo de espera y vuelve a ejecutar la función, hasta un máximo de 30 segundos.
+        
+        InvalidArgumentException: Si la URL no es válida, retorna una lista vacía.
     """
     
     url = unquote(url)
@@ -89,8 +91,6 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
         
         lista_links = list(set(lista_links))
         
-        print('obtener_links lista_links', lista_links)
-        print('obtener_links url', url)
         return lista_links
     
     except NoSuchElementException:
@@ -99,7 +99,6 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
         obtener_links(url, css_selector, tiempo + 10)
     
     except InvalidArgumentException:
-        print('obtener_links url', url)
         return []
 
 
@@ -217,7 +216,23 @@ def obtener_datos_series(url, tiempo=tiempo_default):
 
 
 def obtener_datos_peliculas(url, tiempo=tiempo_default):
+    """Función obtener_datos_pelicula: Recoge los datos de la pelicula de la URL y los guarda en un diccionario.
+
+    Args:
+        url (str): URL de la pelicula.
+        tiempo (int, optional): Tiempo de espera para la carga de la página. Default: tiempo_default.
+
+    Returns:
+        datos_pelicula (dict): Diccionario con los datos recogidos de la pelicula.
+    
+    Raises:
+        NoSuchElementException: En caso de que no existan o no carguen los elementos en el tiempo especificado.
+        Suma 10 segundos al tiempo de espera y vuelve a ejecutar la función, hasta un máximo de 30 segundos.
+    """
+    
+    # Limpiar url    
     url = unquote(url)
+    
     try:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         driver.set_window_size(1024, 600)
@@ -236,6 +251,8 @@ def obtener_datos_peliculas(url, tiempo=tiempo_default):
         genero = lista_li[2].text
         año = lista_li[3].text
         año = validar_año(año)
+        
+        # Eliminar dobles espacios, tabulaciones y saltos de línea
         sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
         
         datos_pelicula = {
@@ -265,7 +282,17 @@ def obtener_datos_peliculas(url, tiempo=tiempo_default):
 
 
 def validar_año(st):
-    lista = re.findall('\d+|.', st)
+    """Función validar_año: Verifica que los años sean entre 1900 y el año actual.
+    Si no lo es, retorna un string vacío.
+
+    Args:
+        st (str): String del año o los años a validar.
+    
+    Returns:
+        st (str): El mismo string del argumento.
+    """
+    
+    lista = re.findall('\d+', st)
     n = max([int(n) for n in lista if n.isdigit()])
     if 1900 < n <= date.today().year:
         return st
@@ -302,7 +329,6 @@ lista_links_series = set(lista_links_series)
     
 dict_series = {}
 for i, link in enumerate(lista_links_series):
-    print('for i, link in enumerate(lista_links_series):', link)
     dict_series[i] = obtener_datos_series(link)
 
 
