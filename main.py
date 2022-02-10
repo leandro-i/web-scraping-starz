@@ -135,79 +135,91 @@ def obtener_datos_series(url, tiempo=tiempo_default):
         driver.set_window_size(1024, 600)
         driver.maximize_window()
         driver.get(url)
+        
         sleep(tiempo)
         
-        meta = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
-        lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')
+        temporadas = driver.find_elements(By.CSS_SELECTOR, 'div.episodes-container div.season-number a')
+
         
-        titulo = meta.find_element(By.CSS_SELECTOR, '.series-title h1').text
-        calificacion = lista_li[0].text
-        genero = lista_li[2].text
-        año = lista_li[3].text
-        año = validar_año(año)
         
-        # Eliminar dobles espacios, tabulaciones y saltos de línea
-        sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
-        
-        contenedor_episodios = driver.find_element(By.CSS_SELECTOR, 'div.episodes-container')
-        temporadas = contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.season-number a')
-        
-        dict_episodios = {}
-        
-        for i, temporada in enumerate(temporadas):
-            lista_episodios = []
+        for nro_temporada, temporada in enumerate(temporadas, 1):
+            meta = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
+            lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')
+
+            titulo = meta.find_element(By.CSS_SELECTOR, '.series-title h1').text
+            calificacion = lista_li[0].text
+            genero = lista_li[2].text
+            año = lista_li[3].text
+            año = validar_año(año)
             
+            # Eliminar dobles espacios, tabulaciones y saltos de línea
+            sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
+            
+            lista_episodios = []    
+                
+            contenedor_episodios = driver.find_element(By.CSS_SELECTOR, 'div.episodes-container')
             episodios =  contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.episode-container')
+            lista_links_temporadas = contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.season-number a')
+            link_temporada  = lista_links_temporadas[nro_temporada-1].get_attribute('href')
             
-            if i == 0:                
-                link_temporada  = temporada.get_attribute('href')            
             
-            for n, episodio in enumerate(episodios, 1):
-                episodio_titulo = episodio.find_element(By.CSS_SELECTOR, 'a .title').text                
+            for nro_episodio, episodio in enumerate(episodios, 1):
+                episodio_titulo = episodio.find_element(By.CSS_SELECTOR, 'a .title').text
                 episodio_meta = episodio.find_element(By.CSS_SELECTOR, 'a ul.meta-list')
                 episodio_lista_li = episodio_meta.find_elements(By.CSS_SELECTOR, 'li')
                 episodio_duracion = episodio_lista_li[1].text
-                episodio_año = episodio_lista_li[2].text                
+                episodio_año = episodio_lista_li[2].text
                 
-                # Verificar si es un tráiler
+                
+                # Verificar si es un tráiler                
                 if 'tráiler' in episodio_titulo.lower() and int(episodio_duracion.split()[0]) < 5:
                     continue
                 
                 lista_episodios.append({
-                    'temporada': i+1,
-                    'numero_episodio': n,
+                    'temporada': nro_temporada,
+                    'numero_episodio': nro_episodio,
                     'titulo': episodio_titulo,
                     'año': episodio_año,
                     'duracion': episodio_duracion,
                     'link_temporada': link_temporada,
-                })
-
-            dict_episodios[i+1] = lista_episodios            
+                })            
             
-            # Si hay más temporadas            
-            if len(temporadas) > i+1:
-                lista_temporadas = contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.season-number a')
-                link_temporada = lista_temporadas[i+1].get_attribute('href')
-                
-                driver.quit()
-                
+            
+            # Datos de cada temporada            
+            dict_temporadas = {}
+            dict_temporadas[nro_temporada] = {}
+            dict_temporadas[nro_temporada]['sinopsis'] = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', driver.find_element(By.CSS_SELECTOR, 'div.metadata div.logline p').text)
+            dict_temporadas[nro_temporada]['cantidad_episodios'] = len(lista_episodios)
+            dict_temporadas[nro_temporada]['episodios'] = lista_episodios
+            dict_temporadas[nro_temporada]['año'] = año
+                        
+            
+            # Si hay más temporadas    
+            if len(temporadas) > nro_temporada:
+                link_siguiente_temporada = lista_links_temporadas[nro_temporada].get_attribute('href')
+                driver.quit()                
                 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
                 driver.set_window_size(1024, 600)
                 driver.maximize_window()
-                driver.get(link_temporada)
+                driver.get(link_siguiente_temporada)
                 sleep(tiempo)
-                
-                contenedor_episodios = driver.find_element(By.CSS_SELECTOR, 'div.episodes-container')
-            
+        
+        
+        # Sumar cantidad de episodios de la serie
+        cantidad_episodios_total = 0
+        for temporada in dict_temporadas:
+            cantidad_episodios_total += dict_temporadas[temporada]['cantidad_episodios']
+        
+        
         datos_serie = {
             'titulo': titulo,
             'calificacion': calificacion,
             'genero': genero,
             'año': año,
             'sinopsis': sinopsis,
-            'temporadas': len(temporadas),
-            'cantidad_de_episodios': len(episodios),
-            'episodios': dict_episodios,
+            'cantidad_de_temporadas': len(temporadas),
+            'cantidad_de_episodios': cantidad_episodios_total,
+            'temporadas': dict_temporadas,
             'link': url,
         }
         
@@ -351,7 +363,6 @@ for i, link in enumerate(lista_links_series):
 
 # Exportar diccionarios a archivos json
 
-
 with open(RUTA_PELICULAS_JSON, 'w+', encoding='utf8') as file:
     json.dump(dict_peliculas, file, ensure_ascii=False, indent=4)
 
@@ -364,3 +375,11 @@ with open(RUTA_CATALOGO_JSON, 'w+', encoding='utf8') as file:
         'peliculas': dict_peliculas,
     }    
     json.dump(dict_catalogo, file, ensure_ascii=False, indent=4)
+
+
+
+
+
+
+
+
