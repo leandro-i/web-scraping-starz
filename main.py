@@ -12,13 +12,13 @@ from time import sleep
 import re
 from urllib.parse import unquote
 from datetime import date
+from unidecode import unidecode
 import json
-
 
 # Declaración de variables
 
-URL_SERIES = 'https://www.starz.com/ar/es/series'
 URL_PELICULAS = 'https://www.starz.com/ar/es/movies'
+URL_SERIES = 'https://www.starz.com/ar/es/series'
 
 SELECTOR_CSS_VER_TODO = 'a.view-all'
 SELECTOR_CSS_LINKS = 'starz-content-item article div a:first-of-type'
@@ -27,7 +27,8 @@ RUTA_PELICULAS_JSON = 'peliculas.json'
 RUTA_SERIES_JSON = 'series.json'
 RUTA_CATALOGO_JSON = 'catalogo.json'
 
-tiempo_default = 5
+tiempo_default = 7
+tiempo_maximo_espera = 30
 
 
 # Opciones del driver
@@ -101,143 +102,13 @@ def obtener_links(url, css_selector, tiempo=tiempo_default):
         return lista_links
     
     except NoSuchElementException:
-        if tiempo >= 30:
+        print('obtener_links url', url)
+        if tiempo > tiempo_maximo_espera:
             return []
-        obtener_links(url, css_selector, tiempo + 10)
+        obtener_links(url, css_selector, tiempo+10)
     
     except InvalidArgumentException:
-        return []
-
-
-def obtener_datos_series(url, tiempo=tiempo_default):
-    """Función obtener_datos_series: Recoge los datos de la serie de la URL y los guarda en un diccionario.
-
-    Args:
-        url (str): URL de la serie.
-        tiempo (int, optional): Tiempo de espera para la carga de la página. Default: tiempo_default.
-
-    Returns:
-        datos_serie (dict): Diccionario con los datos recogidos de la serie.
-    
-    Raises:
-        NoSuchElementException: En caso de que no existan o no carguen los elementos en el tiempo especificado.
-        Suma 10 segundos al tiempo de espera y vuelve a ejecutar la función, hasta un máximo de 30 segundos.
-        
-        InvalidArgumentException: Si la URL no es válida, retorna una lista vacía.
-    """
-    
-    # Limpiar URL
-    url = unquote(url)
-    
-    try:
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-        driver.set_window_size(1024, 600)
-        driver.maximize_window()
-        driver.get(url)
-        
-        sleep(tiempo)
-        
-        temporadas = driver.find_elements(By.CSS_SELECTOR, 'div.episodes-container div.season-number a')
-
-        for nro_temporada, temporada in enumerate(temporadas, 1):
-            # Click botón "ver más" si existe
-            try:
-                driver.find_element(By.CSS_SELECTOR,'div.metadata .more-link.more-button.show').click()
-                sleep(tiempo/3)
-            except NoSuchElementException:
-                pass
-            
-            meta = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
-            lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')
-
-            titulo = meta.find_element(By.CSS_SELECTOR, '.series-title h1').text
-            calificacion = lista_li[0].text
-            genero = lista_li[2].text
-            año = lista_li[3].text
-            año = validar_año(año)
-            
-            # Eliminar dobles espacios, tabulaciones y saltos de línea
-            sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
-            
-            lista_episodios = []    
-                
-            contenedor_episodios = driver.find_element(By.CSS_SELECTOR, 'div.episodes-container')
-            episodios =  contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.episode-container')
-            lista_links_temporadas = contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.season-number a')
-            link_temporada  = lista_links_temporadas[nro_temporada-1].get_attribute('href')
-            
-            
-            for nro_episodio, episodio in enumerate(episodios, 1):
-                episodio_titulo = episodio.find_element(By.CSS_SELECTOR, 'a .title').text
-                episodio_meta = episodio.find_element(By.CSS_SELECTOR, 'a ul.meta-list')
-                episodio_lista_li = episodio_meta.find_elements(By.CSS_SELECTOR, 'li')
-                episodio_duracion = episodio_lista_li[1].text
-                episodio_año = episodio_lista_li[2].text
-                episodio_link = episodio.find_element(By.CSS_SELECTOR, 'a.episode-link').get_attribute('href')
-                
-                # Verificar si es un tráiler
-                if 'tráiler' in episodio_titulo.lower() and int(episodio_duracion.split()[0]) < 6:
-                    continue
-                
-                lista_episodios.append({
-                    'temporada': nro_temporada,
-                    'numero_episodio': nro_episodio,
-                    'titulo': episodio_titulo,
-                    'año': episodio_año,
-                    'duracion': episodio_duracion,
-                    'link_episodio': episodio_link,
-                })            
-            
-            
-            # Datos de cada temporada            
-            dict_temporadas = {}
-            dict_temporadas[nro_temporada] = {}
-            dict_temporadas[nro_temporada]['sinopsis'] = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', driver.find_element(By.CSS_SELECTOR, 'div.metadata div.logline p').text)
-            dict_temporadas[nro_temporada]['cantidad_episodios'] = len(lista_episodios)
-            dict_temporadas[nro_temporada]['episodios'] = lista_episodios
-            dict_temporadas[nro_temporada]['año'] = año
-                        
-            
-            # Si hay más temporadas    
-            if len(temporadas) > nro_temporada:
-                link_siguiente_temporada = lista_links_temporadas[nro_temporada].get_attribute('href')
-                driver.quit()                
-                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-                driver.set_window_size(1024, 600)
-                driver.maximize_window()
-                driver.get(link_siguiente_temporada)
-                sleep(tiempo)
-        
-        # Sumar cantidad de episodios de la serie
-        cantidad_episodios_total = 0
-        for temporada in dict_temporadas:
-            cantidad_episodios_total += dict_temporadas[temporada]['cantidad_episodios']
-        
-        datos_serie = {
-            'titulo': titulo,
-            'calificacion': calificacion,
-            'genero': genero,
-            'año': año,
-            'sinopsis': sinopsis,
-            'cantidad_de_temporadas': len(temporadas),
-            'cantidad_de_episodios': cantidad_episodios_total,
-            'temporadas': dict_temporadas,
-            'link': url,
-        }
-        
-        driver.quit()
-        print('datos_serie', datos_serie)
-        return datos_serie
-
-    except NoSuchElementException:
-        if tiempo > 30:
-            driver.quit()
-            return []
-        obtener_datos_series(url, tiempo + 10)
-    
-    except InvalidArgumentException:
-        print('obtener_datos_series url', url)
-        driver.quit()
+        print('obtener_links url', url)
         return []
 
 
@@ -270,7 +141,7 @@ def obtener_datos_peliculas(url, tiempo=tiempo_default):
         
         # Click botón "ver más" si existe
         try:
-            driver.find_element(By.CSS_SELECTOR,'div.metadata .more-link.more-button.show').click()
+            driver.find_element(By.CSS_SELECTOR,'div.metadata .more-link.show').click()
             sleep(tiempo/3)
         except NoSuchElementException:
             pass
@@ -298,20 +169,163 @@ def obtener_datos_peliculas(url, tiempo=tiempo_default):
             'sinopsis': sinopsis,
             'duracion': duracion,
             'link': url,
-        }        
+        }
+        
         
         driver.quit()
-        print('datos_pelicula', datos_pelicula)
         return datos_pelicula
     
     except NoSuchElementException:
-        if tiempo > 30:
+        if tiempo > tiempo_maximo_espera:
+            print('obtener_datos_peliculas url', url)
             driver.quit()
             return []
-        obtener_datos_peliculas(url, tiempo + 10)
+        obtener_datos_peliculas(url, tiempo+10)
     
     except InvalidArgumentException:
         print('obtener_datos_peliculas url', url)
+        driver.quit()
+        return []
+
+
+def obtener_datos_series(url, tiempo=tiempo_default):
+    """Función obtener_datos_series: Recoge los datos de la serie de la URL y los guarda en un diccionario.
+
+    Args:
+        url (str): URL de la serie.
+        tiempo (int, optional): Tiempo de espera para la carga de la página. Default: tiempo_default.
+
+    Returns:
+        datos_serie (dict): Diccionario con los datos recogidos de la serie.
+    
+    Raises:
+        NoSuchElementException: En caso de que no existan o no carguen los elementos en el tiempo especificado.
+        Suma 10 segundos al tiempo de espera y vuelve a ejecutar la función, hasta un máximo de 30 segundos.
+        
+        InvalidArgumentException: Si la URL no es válida, retorna una lista vacía.
+    """
+    
+    # Limpiar URL
+    url = unquote(url)
+    
+    try:
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver.set_window_size(1024, 600)
+        driver.maximize_window()
+        driver.get(url)
+        
+        sleep(tiempo)
+        
+        meta_serie = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
+        titulo_serie = meta_serie.find_element(By.CSS_SELECTOR, '.series-title h1').text
+        lista_li_serie = meta_serie.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')
+        calificacion_serie = lista_li_serie[0].text
+        genero_serie = lista_li_serie[2].text
+        año_serie = lista_li_serie[3].text
+        año_serie = validar_año(año_serie)
+        
+        # Eliminar dobles espacios, tabulaciones y saltos de línea
+        sinopsis_serie = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta_serie.find_element(By.CSS_SELECTOR, 'div.logline p').text)
+        
+        
+        temporadas = driver.find_elements(By.CSS_SELECTOR, 'div.episodes-container div.season-number a')
+                
+        dict_temporadas = {}
+        
+        for nro_temporada, temporada in enumerate(temporadas, 1):
+            # Click botón "ver más" si existe
+            try:
+                driver.find_element(By.CSS_SELECTOR,'div.metadata .more-link.more-button.show').click()
+                sleep(tiempo/3)
+            except NoSuchElementException:
+                pass
+            
+            meta = driver.find_element(By.CSS_SELECTOR, 'div.metadata')
+            lista_li = meta.find_elements(By.CSS_SELECTOR, 'ul.meta-list li')
+            año = lista_li[3].text
+            año = validar_año(año)
+            
+            # Eliminar dobles espacios, tabulaciones y saltos de línea
+            sinopsis = re.sub(r'(\s{2,})|(\n)|(\t)', ' ', meta.find_element(By.CSS_SELECTOR, 'div.logline p').text)
+            
+            lista_episodios = []    
+                
+            contenedor_episodios = driver.find_element(By.CSS_SELECTOR, 'div.episodes-container')
+            episodios =  contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.episode-container')
+            lista_links_temporadas = contenedor_episodios.find_elements(By.CSS_SELECTOR, 'div.season-number a')
+            link_temporada  = unquote(lista_links_temporadas[nro_temporada-1].get_attribute('href'))
+            
+            for nro_episodio, episodio in enumerate(episodios, 1):
+                episodio_titulo = episodio.find_element(By.CSS_SELECTOR, 'a .title').text
+                episodio_meta = episodio.find_element(By.CSS_SELECTOR, 'a ul.meta-list')
+                episodio_lista_li = episodio_meta.find_elements(By.CSS_SELECTOR, 'li')
+                episodio_duracion = episodio_lista_li[1].text
+                episodio_año = episodio_lista_li[2].text
+                episodio_link = unquote(episodio.find_element(By.CSS_SELECTOR, 'a.episode-link').get_attribute('href'))
+                
+                # Verificar si es un tráiler
+                if 'tráiler' in episodio_titulo.lower() and int(episodio_duracion.split()[0]) < 6:
+                    continue
+                
+                lista_episodios.append({
+                    'temporada': nro_temporada,
+                    'numero_episodio': nro_episodio,
+                    'titulo': episodio_titulo,
+                    'año': episodio_año,
+                    'duracion': episodio_duracion,
+                    'link_episodio': episodio_link,
+                })
+            
+            
+            # Datos de cada temporada            
+            dict_temporadas[nro_temporada] = {}
+            dict_temporadas[nro_temporada]['sinopsis'] = sinopsis
+            dict_temporadas[nro_temporada]['año'] = año
+            dict_temporadas[nro_temporada]['cantidad_episodios'] = len(lista_episodios)
+            dict_temporadas[nro_temporada]['episodios'] = lista_episodios
+            dict_temporadas[nro_temporada]['link_temporada'] = link_temporada
+                        
+            # Si hay más temporadas    
+            if len(temporadas) > nro_temporada:
+                link_siguiente_temporada = unquote(lista_links_temporadas[nro_temporada].get_attribute('href'))
+                driver.quit()                
+                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+                driver.set_window_size(1024, 600)
+                driver.maximize_window()
+                driver.get(link_siguiente_temporada)
+                sleep(tiempo)
+        
+        # Sumar cantidad de episodios de la serie
+        cantidad_episodios_total = 0
+        for temporada in dict_temporadas:
+            cantidad_episodios_total += dict_temporadas[temporada]['cantidad_episodios']
+        
+        datos_serie = {
+            'titulo': titulo_serie,
+            'calificacion': calificacion_serie,
+            'genero': genero_serie,
+            'año': año_serie,
+            'sinopsis': sinopsis_serie,
+            'cantidad_de_temporadas': len(temporadas),
+            'cantidad_de_episodios': cantidad_episodios_total,
+            'temporadas': dict_temporadas,
+            'link': url,
+        }
+        
+        
+                
+        driver.quit()
+        return datos_serie
+
+    except NoSuchElementException:
+        if tiempo > tiempo_maximo_espera:
+            print('obtener_datos_series url', url)
+            driver.quit()
+            return []
+        obtener_datos_series(url, tiempo + 10)
+    
+    except InvalidArgumentException:
+        print('obtener_datos_series url', url)
         driver.quit()
         return []
 
@@ -326,13 +340,39 @@ def validar_año(st):
     Returns:
         st (str): El mismo string del argumento.
     """
-    
-    lista = re.findall('\d+', st)
-    n = max([int(n) for n in lista if n.isdigit()])
-    if 1900 < n <= date.today().year:
+    try:
+        lista = re.findall('\d+', st)
+        n = max([int(n) for n in lista if n.isdigit()])
+        if 1900 < n <= date.today().year:
+            return st
+        else:
+            return ''
+    except ValueError:
         return st
-    else:
-        return ''
+
+
+
+# SERIES
+
+lista_links_categorias_series = obtener_links(URL_SERIES, SELECTOR_CSS_VER_TODO)
+
+lista_links_series = []
+for link in lista_links_categorias_series:
+    lista_links_series.extend(obtener_links(link, SELECTOR_CSS_LINKS))
+
+# Eliminar series repetidas
+lista_links_series = set(lista_links_series)
+
+lista_series = []
+for link in lista_links_series:
+    lista_series.append(obtener_datos_series(link))
+
+# Ordenar lista de series alfabéticamente
+lista_series = sorted(lista_series, key=lambda x: unidecode(x['titulo'].lower()))
+
+dict_series = {}
+for i, serie in enumerate(lista_series, 1):
+    dict_series[i] = serie
 
 
 
@@ -347,26 +387,16 @@ for link in lista_links_categorias_peliculas:
 # Eliminar películas repetidas
 lista_links_peliculas = set(lista_links_peliculas)
 
+lista_peliculas = []
+for link in lista_links_peliculas:
+    lista_peliculas.append(obtener_datos_peliculas(link))
+
+# Ordenar lista de peliculas alfabéticamente
+lista_peliculas = sorted(lista_peliculas, key=lambda x: unidecode(x['titulo'].lower()))
+
 dict_peliculas = {}
-for i, link in enumerate(lista_links_peliculas):
-    dict_peliculas[i+1] = obtener_datos_peliculas(link)
-
-
-
-# SERIES
-
-lista_links_categorias_series = obtener_links(URL_SERIES, SELECTOR_CSS_VER_TODO)
-
-lista_links_series = []
-for link in lista_links_categorias_series:
-    lista_links_series.extend(obtener_links(link, SELECTOR_CSS_LINKS))
-
-# Eliminar series repetidas
-lista_links_series = set(lista_links_series)
-    
-dict_series = {}
-for i, link in enumerate(lista_links_series):
-    dict_series[i+1] = obtener_datos_series(link)
+for i, pelicula in enumerate(lista_peliculas, 1):
+    dict_peliculas[i] = pelicula
 
 
 
@@ -380,8 +410,8 @@ with open(RUTA_SERIES_JSON, 'w+', encoding='utf8') as file:
 
 with open(RUTA_CATALOGO_JSON, 'w+', encoding='utf8') as file:
     dict_catalogo = {
-        'series': dict_series,
         'peliculas': dict_peliculas,
+        'series': dict_series,
     }    
     json.dump(dict_catalogo, file, ensure_ascii=False, indent=4)
 
