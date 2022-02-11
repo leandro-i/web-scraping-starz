@@ -354,6 +354,15 @@ def validar_año(st):
         return st
 
 def cargar_pelicula(datos_pelicula):
+    """Función cargar_pelicula: Carga un diccionario de la película a la base de datos SQLite especificada.
+    
+    Args:
+        datos_pelicula (dict): Diccionario con los datos de la película.
+    
+    Raises:
+        sqlite3.IntegrityError: Si el link de la película no es UNIQUE.
+    """
+    
     if not os.path.exists(RUTA_DB):
         open(RUTA_DB, 'a').close()
         
@@ -380,13 +389,30 @@ def cargar_pelicula(datos_pelicula):
                 datos_pelicula['duracion'], 
                 datos_pelicula['link']
             )
-            cursor.execute('INSERT INTO peliculas (titulo, calificacion, genero, año, sinopsis, duracion, link) VALUES (?, ?, ?, ?, ?, ?, ?);', tupla)
+            cursor.execute("""INSERT INTO peliculas (
+                titulo, 
+                calificacion, 
+                genero, 
+                año, 
+                sinopsis, 
+                duracion, 
+                link
+            ) VALUES (?, ?, ?, ?, ?, ?, ?);""", tupla)
             con.commit()
         except sqlite3.IntegrityError:
             pass
 
 
 def cargar_serie(datos_serie):
+    """Función cargar_serie: Carga un diccionario de la serie a la base de datos SQLite especificada.
+    
+    Args:
+        datos_serie (dict): Diccionario con los datos de la película.
+    
+    Raises:
+        sqlite3.IntegrityError: Si el link de la serie no es UNIQUE.
+    """
+    
     if not os.path.exists(RUTA_DB):
         open(RUTA_DB, 'a').close()
         
