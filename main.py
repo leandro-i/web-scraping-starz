@@ -28,6 +28,7 @@ SELECTOR_CSS_LINKS = 'starz-content-item article div a:first-of-type'
 RUTA_PELICULAS_JSON = 'peliculas.json'
 RUTA_SERIES_JSON = 'series.json'
 RUTA_CATALOGO_JSON = 'catalogo.json'
+RUTA_DB = 'db.sqlite3'
 
 tiempo_default = 7
 tiempo_maximo_espera = 30
@@ -353,10 +354,10 @@ def validar_año(st):
         return st
 
 def cargar_pelicula(datos_pelicula):
-    if not os.path.exists('db.sqlite3'):
-        open('db.sqlite3', 'a').close()
+    if not os.path.exists(RUTA_DB):
+        open(RUTA_DB, 'a').close()
         
-    with sqlite3.connect('db.sqlite3') as con:
+    with sqlite3.connect(RUTA_DB) as con:
         try:
             cursor = con.cursor()
             cursor.execute("""CREATE TABLE IF NOT EXISTS peliculas (
@@ -386,10 +387,10 @@ def cargar_pelicula(datos_pelicula):
 
 
 def cargar_serie(datos_serie):
-    if not os.path.exists('db.sqlite3'):
-        open('db.sqlite3', 'a').close()
+    if not os.path.exists(RUTA_DB):
+        open(RUTA_DB, 'a').close()
         
-    with sqlite3.connect('db.sqlite3') as con:
+    with sqlite3.connect(RUTA_DB) as con:
         try:
             cursor = con.cursor()
             cursor.execute("""CREATE TABLE IF NOT EXISTS series (
