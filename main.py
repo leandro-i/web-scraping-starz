@@ -14,6 +14,8 @@ from urllib.parse import unquote
 from datetime import date
 from unidecode import unidecode
 import json
+import sqlite3
+import os
 
 # Declaración de variables
 
@@ -171,7 +173,7 @@ def obtener_datos_peliculas(url, tiempo=tiempo_default):
             'link': url,
         }
         
-        
+        cargar_pelicula(datos_pelicula)
         driver.quit()
         return datos_pelicula
     
@@ -312,7 +314,7 @@ def obtener_datos_series(url, tiempo=tiempo_default):
             'link': url,
         }
         
-        
+        cargar_serie(datos_serie)
                 
         driver.quit()
         return datos_serie
@@ -349,6 +351,81 @@ def validar_año(st):
             return ''
     except ValueError:
         return st
+
+def cargar_pelicula(datos_pelicula):
+    if not os.path.exists('db.sqlite3'):
+        open('db.sqlite3', 'a').close()
+        
+    with sqlite3.connect('db.sqlite3') as con:
+        try:
+            cursor = con.cursor()
+            cursor.execute("""CREATE TABLE IF NOT EXISTS peliculas (
+                id_pelicula INTEGER PRIMARY KEY, 
+                titulo TEXT, 
+                calificacion TEXT, 
+                genero TEXT, 
+                año TEXT, 
+                sinopsis TEXT, 
+                duracion TEXT, 
+                link TEXT UNIQUE
+            );""")
+                   
+            tupla = (
+                datos_pelicula['titulo'], 
+                datos_pelicula['calificacion'], 
+                datos_pelicula['genero'], 
+                datos_pelicula['año'], 
+                datos_pelicula['sinopsis'], 
+                datos_pelicula['duracion'], 
+                datos_pelicula['link']
+            )
+            cursor.execute('INSERT INTO peliculas (titulo, calificacion, genero, año, sinopsis, duracion, link) VALUES (?, ?, ?, ?, ?, ?, ?);', tupla)
+            con.commit()
+        except sqlite3.IntegrityError:
+            pass
+
+
+def cargar_serie(datos_serie):
+    if not os.path.exists('db.sqlite3'):
+        open('db.sqlite3', 'a').close()
+        
+    with sqlite3.connect('db.sqlite3') as con:
+        try:
+            cursor = con.cursor()
+            cursor.execute("""CREATE TABLE IF NOT EXISTS series (
+                id_serie INTEGER PRIMARY KEY, 
+                titulo TEXT, calificacion TEXT, 
+                genero TEXT, 
+                año TEXT, 
+                sinopsis TEXT, 
+                cantidad_de_temporadas INTEGER, 
+                cantidad_de_episodios INTEGER, 
+                link TEXT UNIQUE
+            );""")
+            
+            tupla = (
+                datos_serie['titulo'], 
+                datos_serie['calificacion'], 
+                datos_serie['genero'], 
+                datos_serie['año'], 
+                datos_serie['sinopsis'], 
+                datos_serie['cantidad_de_temporadas'], 
+                datos_serie['cantidad_de_episodios'], 
+                datos_serie['link']
+            )
+            cursor.execute("""INSERT INTO series (
+                titulo, 
+                calificacion, 
+                genero, 
+                año, 
+                sinopsis, 
+                cantidad_de_temporadas, 
+                cantidad_de_episodios, 
+                link
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);""", tupla)
+            con.commit()
+        except sqlite3.IntegrityError:
+            pass
 
 
 
