@@ -407,7 +407,7 @@ def cargar_serie(datos_serie):
     """Función cargar_serie: Carga un diccionario de la serie a la base de datos SQLite especificada.
     
     Args:
-        datos_serie (dict): Diccionario con los datos de la película.
+        datos_serie (dict): Diccionario con los datos de la serie.
     
     Raises:
         sqlite3.IntegrityError: Si el link de la serie no es UNIQUE.
@@ -421,7 +421,8 @@ def cargar_serie(datos_serie):
             cursor = con.cursor()
             cursor.execute("""CREATE TABLE IF NOT EXISTS series (
                 id_serie INTEGER PRIMARY KEY, 
-                titulo TEXT, calificacion TEXT, 
+                titulo TEXT, 
+                calificacion TEXT, 
                 genero TEXT, 
                 año TEXT, 
                 sinopsis TEXT, 
