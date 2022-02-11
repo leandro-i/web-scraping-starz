@@ -50,5 +50,8 @@ ENV/
 env.bak/
 venv.bak/
 
-# Folder backup
+# Folders
 .backup/
+
+# Files
+test.py
