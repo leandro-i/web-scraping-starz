@@ -22,13 +22,13 @@ import os
 URL_PELICULAS = 'https://www.starz.com/ar/es/movies'
 URL_SERIES = 'https://www.starz.com/ar/es/series'
 
-SELECTOR_CSS_VER_TODO = 'a.view-all'
-SELECTOR_CSS_LINKS = 'starz-content-item article div a:first-of-type'
-
 RUTA_PELICULAS_JSON = 'peliculas.json'
 RUTA_SERIES_JSON = 'series.json'
 RUTA_CATALOGO_JSON = 'catalogo.json'
 RUTA_DB = 'db.sqlite3'
+
+SELECTOR_CSS_VER_TODO = 'a.view-all'
+SELECTOR_CSS_LINKS = 'starz-content-item article div a:first-of-type'
 
 tiempo_default = 7
 tiempo_maximo_espera = 30
@@ -456,30 +456,6 @@ def cargar_serie(datos_serie):
 
 
 
-# SERIES
-
-lista_links_categorias_series = obtener_links(URL_SERIES, SELECTOR_CSS_VER_TODO)
-
-lista_links_series = []
-for link in lista_links_categorias_series:
-    lista_links_series.extend(obtener_links(link, SELECTOR_CSS_LINKS))
-
-# Eliminar series repetidas
-lista_links_series = set(lista_links_series)
-
-lista_series = []
-for link in lista_links_series:
-    lista_series.append(obtener_datos_series(link))
-
-# Ordenar lista de series alfabéticamente
-lista_series = sorted(lista_series, key=lambda x: unidecode(x['titulo'].lower()))
-
-dict_series = {}
-for i, serie in enumerate(lista_series, 1):
-    dict_series[i] = serie
-
-
-
 # PELÍCULAS
 
 lista_links_categorias_peliculas = obtener_links(URL_PELICULAS, SELECTOR_CSS_VER_TODO)
@@ -501,6 +477,30 @@ lista_peliculas = sorted(lista_peliculas, key=lambda x: unidecode(x['titulo'].lo
 dict_peliculas = {}
 for i, pelicula in enumerate(lista_peliculas, 1):
     dict_peliculas[i] = pelicula
+
+
+
+# SERIES
+
+lista_links_categorias_series = obtener_links(URL_SERIES, SELECTOR_CSS_VER_TODO)
+
+lista_links_series = []
+for link in lista_links_categorias_series:
+    lista_links_series.extend(obtener_links(link, SELECTOR_CSS_LINKS))
+
+# Eliminar series repetidas
+lista_links_series = set(lista_links_series)
+
+lista_series = []
+for link in lista_links_series:
+    lista_series.append(obtener_datos_series(link))
+
+# Ordenar lista de series alfabéticamente
+lista_series = sorted(lista_series, key=lambda x: unidecode(x['titulo'].lower()))
+
+dict_series = {}
+for i, serie in enumerate(lista_series, 1):
+    dict_series[i] = serie
 
 
 
